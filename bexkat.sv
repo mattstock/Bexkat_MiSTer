@@ -168,7 +168,7 @@ assign VIDEO_ARY = status[1] ? 8'd9  : 8'd3;
 
 `include "build_id.v" 
 localparam CONF_STR = {
-	"MyCore;;",
+	"Bexkat;;",
 	"-;",
 	"O1,Aspect ratio,4:3,16:9;",
 	"O2,TV Mode,NTSC,PAL;",
@@ -241,7 +241,7 @@ wire VSync;
 wire ce_pix;
 wire [7:0] video;
 
-mycore mycore
+bexkat bexkat
 (
 	.clk(clk_sys),
 	.reset(reset),

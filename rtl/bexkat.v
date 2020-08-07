@@ -1,5 +1,5 @@
 
-module mycore
+module bexkat
 (
 	input         clk,
 	input         reset,
@@ -82,6 +82,10 @@ reg  [7:0] cos_out;
 wire [5:0] cos_g = cos_out[7:3]+6'd32;
 cos cos(vvc + {vc>>scandouble, 2'b00}, cos_out);
 
-assign video = (cos_g >= rnd_c) ? {cos_g - rnd_c, 2'b00} : 8'd0;
-
+always_comb
+  begin
+     video[7:4] = (hc < 10'd200 ? 4'h4 : 4'h2);
+     video[3:0] = (vc < 10'd100 ? 4'h1 : 4'h0);
+  end
+   
 endmodule
