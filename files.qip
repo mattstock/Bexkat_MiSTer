@@ -3,3 +3,10 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/cos.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/bexkat.v
 set_global_assignment -name SDC_FILE bexkat.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE bexkat.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/alu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/registerfile.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/control.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/intcalc.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/exceptions.vh
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/bexkat2.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/bexkat2.vh

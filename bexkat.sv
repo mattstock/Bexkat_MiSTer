@@ -56,7 +56,7 @@ module emu
     //    [4]   : 0=RGB  1=BGR (for 16/24/32 modes)
     //
     // FB_STRIDE either 0 (rounded to 256 bytes) or multiple of 16 bytes.
-    
+    */    
     output        FB_EN,
     output  [4:0] FB_FORMAT,
     output [11:0] FB_WIDTH,
@@ -65,7 +65,6 @@ module emu
     output [13:0] FB_STRIDE,
     input         FB_VBL,
     input         FB_LL,
-    */
    
    output 	 LED_USER, // 1 - ON, 0 - OFF.
    
@@ -173,22 +172,6 @@ module emu
 			  "O1,Aspect ratio,4:3,16:9;",
 			  "O2,TV Mode,NTSC,PAL;",
 			  "O34,Noise,White,Red,Green,Blue;",
-			  "-;",
-			  "P1,Test Page 1;",
-			  "P1-;",
-			  "P1-, -= Options in page 1 =-;",
-			  "P1-;",
-			  "P1O5,Option 1-1,Off,On;",
-			  "d0P1F1,BIN;",
-			  "H0P1O6,Option 1-2,Off,On;",
-			  "-;",
-			  "P2,Test Page 2;",
-			  "P2-;",
-			  "P2-, -= Options in page 2 =-;",
-			  "P2-;",
-			  "P2S0,DSK;",
-			  "P2O67,Option 2,1,2,3,4;",
-			  "-;",
 			  "-;",
 			  "T0,Reset;",
 			  "R0,Reset and close OSD;",
