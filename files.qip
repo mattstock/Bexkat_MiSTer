@@ -10,3 +10,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/intcalc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/exceptions.vh
 set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/bexkat2.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/bexkat2/bexkat2.vh
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/wb.vh
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/dualram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/mmu.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/uart/uart.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/uart/uart_rx.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/uart/uart_tx.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/uart/baudgen.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/uart_fifo.v
+set_global_assignment -name QIP_FILE rtl/uart_fifo.qip
