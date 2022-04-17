@@ -17,5 +17,15 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/uart/uart.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/uart/uart_rx.v
 set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/uart/uart_tx.v
 set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/uart/baudgen.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/vga/vga_master.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/vga/vga_controller25.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/vga/vga_controller28.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/vga/textdrv.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/vga/gm_640x480x1.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/vga/gm_640x480x8.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/vga/gm_320x200x8.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/vga/gm_13h.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/dualrom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/dualfifo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/uart_fifo.v
 set_global_assignment -name QIP_FILE rtl/uart_fifo.qip

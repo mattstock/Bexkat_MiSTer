@@ -177,11 +177,6 @@ module emu
   assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
   assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
-  assign { VGA_HS, VGA_VS, VGA_DE } = '0;
-  assign VGA_R = '0;
-  assign VGA_G = '0;
-  assign VGA_B = '0;
-  assign CLK_VIDEO = 0;
   assign CE_PIXEL = 0;
   
   assign VGA_SL = 0;
@@ -207,26 +202,11 @@ module emu
   
 `include "build_id.v"
   localparam CONF_STR = {
-			 "Bexkat;;",
+			 "Bexkat;UART115200;",
 			 "-;",
 			 "O89,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 			 "O2,TV Mode,NTSC,PAL;",
 			 "O34,Noise,White,Red,Green,Blue;",
-			 "-;",
-			 "P1,Test Page 1;",
-			 "P1-;",
-			 "P1-, -= Options in page 1 =-;",
-			 "P1-;",
-			 "P1O5,Option 1-1,Off,On;",
-			 "d0P1F1,BIN;",
-			 "H0P1O6,Option 1-2,Off,On;",
-			 "-;",
-			 "P2,Test Page 2;",
-			 "P2-;",
-			 "P2-, -= Options in page 2 =-;",
-			 "P2-;",
-			 "P2S0,DSK;",
-			 "P2O67,Option 2,1,2,3,4;",
 			 "-;",
 			 "-;",
 			 "T0,Reset;",
@@ -238,9 +218,13 @@ module emu
   wire [1:0]   buttons;
   wire [31:0]  status;
   wire [10:0]  ps2_key;
-  
+  wire [64:0]  RTC;
+  wire [32:0]  START_TIME;
+	      
   hps_io #(.CONF_STR(CONF_STR)) hps_io(.clk_sys(clk_sys),
 				       .HPS_BUS(HPS_BUS),
+				       .RTC(RTC),
+				       .TIMESTAMP(START_TIME),
 				       .EXT_BUS(),
 				       .gamma_bus(),
 				       
@@ -254,12 +238,13 @@ module emu
   
   ///////////////////////   CLOCKS   ///////////////////////////////
 
-  parameter clkfreq = 50000000;
+  parameter clkfreq = 25000000;
   
-  wire 	       clk_sys;
+  logic 	       clk_sys;
+  
   pll pll(.refclk(CLK_50M),
 	  .rst(0),
-	  .outclk_0(clk_sys)); // 50MHz
+	  .outclk_0(clk_sys)); // 25MHz
   
   wire 	       reset = RESET | status[0] | buttons[1];
   
@@ -269,6 +254,7 @@ module emu
   if_wb ram0_ibus(), ram0_dbus();
   if_wb ram1_ibus(), ram1_dbus();
   if_wb io_dbus(), io_uart(), io_timer();
+  if_wb vga_fb0(), vga_fb1();  
 
   mmu mmu_bus0(.clk_i(clk_sys),
 	       .rst_i(reset),
@@ -281,7 +267,8 @@ module emu
 	       .mbus(cpu_dbus.slave),
 	       .p5(ram0_dbus.master),
 	       .p3(io_dbus.master),
-	       .p7(ram1_dbus.master));
+	       .p7(ram1_dbus.master),
+	       .pc(vga_fb0.master));
 
   mmu #(.BASE(12)) mmu_bus2(.clk_i(clk_sys),
 			    .rst_i(reset),
@@ -301,8 +288,6 @@ module emu
 	       .int_en(cpu_inter_en),
 	       .inter(4'b0));
 
-  assign LED_USER = cpu_ibus.stb;
-
   // 128kB
   dualram #(.AWIDTH(15),
 	    .INIT_FILE("rom.mif")) ram1(.clk_i(clk_sys),
@@ -317,7 +302,8 @@ module emu
 			      .wren(1'b1),
 			      .bus0(ram0_ibus.slave),
 			      .bus1(ram0_dbus.slave));
-  /////////// PERIPHERALS //////////////////////////////////
+  
+  ///////////////////////// PERIPHERALS //////////////////////////////////
 
   assign UART_DTR = 1'b1;
   logic [1:0]  serial0_interrupts;
@@ -331,5 +317,32 @@ module emu
 			      .cts(UART_CTS),
 			      .rts(UART_RTS),
 			      .interrupt(serial0_interrupts));
-   
+
+  assign LED_USER = cpu_ibus.stb;
+
+  /////////////////////////// VIDEO  //////////////////////////////////////
+
+  dualram
+    #(.AWIDTH(15)) vgamem0(.clk_i(clk_sys),
+			   .rst_i(reset),
+			   .wren(1'b0),
+			   .bus0(vga_fb0.slave),
+			   .bus1(vga_fb1.slave));
+
+  assign CLK_VIDEO = clk_sys;
+
+  logic [31:0] cursorpos;
+
+  gm_640x480x1 vga0(.clk_i(clk_sys),
+		    .rst_i(reset),
+		    .blank_n(VGA_DE),
+		    .red(VGA_R),
+		    .green(VGA_G),
+		    .blue(VGA_B),
+		    .video_clk_i(clk_sys),
+		    .video_rst_i(reset),
+		    .vs(VGA_VS),
+		    .hs(VGA_HS),
+		    .bus(vga_fb1.master));
+  
 endmodule
