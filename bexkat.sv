@@ -176,6 +176,13 @@ module emu
   assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
   assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
   assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
+
+  assign { VGA_HS, VGA_VS, VGA_DE } = '0;
+  assign VGA_R = '0;
+  assign VGA_G = '0;
+  assign VGA_B = '0;
+  assign CLK_VIDEO = 0;
+  assign CE_PIXEL = 0;
   
   assign VGA_SL = 0;
   assign VGA_F1 = 0;
@@ -259,20 +266,20 @@ module emu
   ////////////////////////// BUSSES ///////////////////////////////////
 
   if_wb cpu_ibus(), cpu_dbus();
-  if_wb sys_ibus(), sys_dbus();
   if_wb ram0_ibus(), ram0_dbus();
   if_wb ram1_ibus(), ram1_dbus();
-  if_wb io_dbus(), io_seg(), io_uart(), io_timer(), io_ps2();
-  if_wb io_matrix(), io_spi();
+  if_wb io_dbus(), io_uart(), io_timer();
 
   mmu mmu_bus0(.clk_i(clk_sys),
 	       .rst_i(reset),
-	       .mbus(sys_ibus.slave),
+	       .mbus(cpu_ibus.slave),
+	       .p5(ram0_ibus.master),
 	       .p7(ram1_ibus.master));
   
   mmu mmu_bus1(.clk_i(clk_sys),
 	       .rst_i(reset),
-	       .mbus(sys_dbus.slave),
+	       .mbus(cpu_dbus.slave),
+	       .p5(ram0_dbus.master),
 	       .p3(io_dbus.master),
 	       .p7(ram1_dbus.master));
 
@@ -298,11 +305,18 @@ module emu
 
   // 128kB
   dualram #(.AWIDTH(15),
-	    .INIT_FILE("../monitor/max10rom.mif")) ram1(.clk_i(clk_sys),
-							.rst_i(reset),
-							.wren(1'b0),
-							.bus0(ram1_ibus.slave),
-							.bus1(ram1_dbus.slave));
+	    .INIT_FILE("rom.mif")) ram1(.clk_i(clk_sys),
+					.rst_i(reset),
+					.wren(1'b0),
+					.bus0(ram1_ibus.slave),
+					.bus1(ram1_dbus.slave));
+  
+  // 16kB
+  dualram #(.AWIDTH(12)) ram0(.clk_i(clk_sys),
+			      .rst_i(reset),
+			      .wren(1'b1),
+			      .bus0(ram0_ibus.slave),
+			      .bus1(ram0_dbus.slave));
   /////////// PERIPHERALS //////////////////////////////////
 
   assign UART_DTR = 1'b1;
