@@ -238,13 +238,14 @@ module emu
   
   ///////////////////////   CLOCKS   ///////////////////////////////
 
-  parameter clkfreq = 25000000;
+  parameter clkfreq = 20000000;
   
-  logic 	       clk_sys;
+  logic 	       clk_sys, clk_vga;
   
   pll pll(.refclk(CLK_50M),
 	  .rst(0),
-	  .outclk_0(clk_sys)); // 25MHz
+	  .outclk_0(clk_vga),  // 40MHz
+	  .outclk_1(clk_sys)); // 20MHz
   
   wire 	       reset = RESET | status[0] | buttons[1];
   
@@ -254,7 +255,7 @@ module emu
   if_wb ram0_ibus(), ram0_dbus();
   if_wb ram1_ibus(), ram1_dbus();
   if_wb io_dbus(), io_uart(), io_timer();
-  if_wb vga_fb0(), vga_fb1();  
+  if_wb vga_dbus(), vga_fb0(), vga_fb1();  
 
   mmu mmu_bus0(.clk_i(clk_sys),
 	       .rst_i(reset),
@@ -268,6 +269,7 @@ module emu
 	       .p5(ram0_dbus.master),
 	       .p3(io_dbus.master),
 	       .p7(ram1_dbus.master),
+	       .p8(vga_dbus.master),
 	       .pc(vga_fb0.master));
 
   mmu #(.BASE(12)) mmu_bus2(.clk_i(clk_sys),
@@ -304,7 +306,7 @@ module emu
 			      .bus1(ram0_dbus.slave));
   
   ///////////////////////// PERIPHERALS //////////////////////////////////
-
+  
   assign UART_DTR = 1'b1;
   logic [1:0]  serial0_interrupts;
   
@@ -329,20 +331,18 @@ module emu
 			   .bus0(vga_fb0.slave),
 			   .bus1(vga_fb1.slave));
 
-  assign CLK_VIDEO = clk_sys;
-
-  logic [31:0] cursorpos;
-
-  gm_640x480x1 vga0(.clk_i(clk_sys),
-		    .rst_i(reset),
-		    .blank_n(VGA_DE),
-		    .red(VGA_R),
-		    .green(VGA_G),
-		    .blue(VGA_B),
-		    .video_clk_i(clk_sys),
-		    .video_rst_i(reset),
-		    .vs(VGA_VS),
-		    .hs(VGA_HS),
-		    .bus(vga_fb1.master));
+  assign CLK_VIDEO = clk_vga;
+  
+  bexkat_vga vga0(.clk_i(clk_sys),
+		  .clk_vga_i(clk_vga),
+		  .rst_i(reset),
+		  .blank_n(VGA_DE),
+		  .r(VGA_R),
+		  .g(VGA_G),
+		  .b(VGA_B),
+		  .vs(VGA_VS),
+		  .hs(VGA_HS),
+		  .inbus(vga_dbus.slave),
+		  .outbus(vga_fb1.master));
   
 endmodule
