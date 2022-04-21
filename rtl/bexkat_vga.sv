@@ -13,7 +13,8 @@ module bexkat_vga
    output [BPP-1:0] r,
    output [BPP-1:0] g,
    output [BPP-1:0] b,
-   output 	    blank_n);
+   output 	    h_blank,
+   output 	    v_blank);
 
   // Configuration registers
   // 0xc00 - video memory base address
@@ -132,7 +133,8 @@ module bexkat_vga
 
   textdrv #(.BPP(BPP)) textdriver0(.clk_i(clk_i),
 				   .rst_i(rst_i),
-				   .blank_n(blank_n),
+				   .h_blank(h_blank),
+				   .v_blank(v_blank),
 				   .red(r),
 				   .green(g),
 				   .blue(b),

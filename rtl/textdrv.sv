@@ -12,13 +12,14 @@ module textdrv
    input [31:0]     cursorpos,
    input [3:0] 	    cursormode,
    input [23:0]     cursorcolor,
-   output 	    blank_n,
+   output 	    v_blank,
+   output 	    h_blank, 
    output 	    vs,
    output 	    hs,
    output [BPP-1:0] red,
    output [BPP-1:0] green,
    output [BPP-1:0] blue,
-   if_wb.master     bus);
+		    if_wb.master bus);
 
   logic [31:0] 	    bus_dat_i, bus_dat_o;
 
@@ -236,7 +237,8 @@ module textdrv
   logic [7:0]  char0, char1;
   
   assign { pcolor0, char0, pcolor1, char1 } = fifo_out;
-  assign blank_n = v_active & h_active;
+  assign h_blank = ~h_active;
+  assign v_blank = ~v_active;
 
   assign color0 = { pcolor0[7:6], 6'h0, 
 		    pcolor0[5:3], 5'h0,

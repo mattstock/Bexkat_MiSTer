@@ -177,8 +177,6 @@ module emu
   assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
   assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
-  assign CE_PIXEL = 0;
-  
   assign VGA_SL = 0;
   assign VGA_F1 = 0;
   assign VGA_SCALER = 0;
@@ -205,8 +203,6 @@ module emu
 			 "Bexkat;UART115200;",
 			 "-;",
 			 "O89,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-			 "O2,TV Mode,NTSC,PAL;",
-			 "O34,Noise,White,Red,Green,Blue;",
 			 "-;",
 			 "-;",
 			 "T0,Reset;",
@@ -219,7 +215,7 @@ module emu
   wire [31:0]  status;
   wire [10:0]  ps2_key;
   wire [64:0]  RTC;
-  wire [32:0]  START_TIME;
+  wire [32:0]  START_TIME; // epoch time
 	      
   hps_io #(.CONF_STR(CONF_STR)) hps_io(.clk_sys(clk_sys),
 				       .HPS_BUS(HPS_BUS),
@@ -332,11 +328,17 @@ module emu
 			   .bus1(vga_fb1.slave));
 
   assign CLK_VIDEO = clk_vga;
+
+  wire 	       VBlank, HBlank;
+
+  assign VGA_DE = ~(VBlank | HBlank);
+  assign CE_PIXEL = 1'b1;
   
   bexkat_vga vga0(.clk_i(clk_sys),
 		  .clk_vga_i(clk_vga),
 		  .rst_i(reset),
-		  .blank_n(VGA_DE),
+		  .v_blank(VBlank),
+		  .h_blank(HBlank),
 		  .r(VGA_R),
 		  .g(VGA_G),
 		  .b(VGA_B),
