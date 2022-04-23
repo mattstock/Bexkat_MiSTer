@@ -38,15 +38,15 @@ module textdrv
    * different block below that for the VGA and rendering side.
    * 
    * For this video mode, we use two bytes per character, which for a
-   * 800x600, 100x25 char screen means 80 char/line / 2 char/word = 40 words
-   * per line, and each word will "fill" 18 pixels.  We pipeline the load of
+   * 800x600, 100x50 char screen means 100 char/line / 2 char/word = 50 words
+   * per line, and each word will "fill" 16 pixels.  We pipeline the load of
    * the words as well as the font lookup before the fifo so that the VGA
    * clocking can happen as quickly as possible.
    * 
    * The fifo is 2(24 bits + 9 pixels) = 66 bits wide.
    */
 
-  typedef enum 	bit [1:0] { S_IDLE, S_BUS, S_ACK_WAIT, S_FAULT } state_t;
+  typedef enum 	bit [1:0] { S_IDLE, S_BUS, S_ACK_WAIT, S_EOL } state_t;
   
   state_t      state, state_next;
   logic [7:0]  idx, idx_next;
@@ -107,8 +107,7 @@ module textdrv
 	begin
 	  y_next = 4'h0;
 	  rowval_next = 16'h0;
-	  if (state != S_FAULT)
-	    page_count_next = page_count + 12'h1;
+	  page_count_next = page_count + 12'h1;
 	end
       
       case (state)
@@ -123,7 +122,7 @@ module textdrv
 	S_BUS:
 	  begin
 	    idx_next = idx + 8'd1;
-	    if (idx == 8'd39)
+	    if (idx == 8'd49)
 	      begin
 		state_next = S_ACK_WAIT;
 	      end
@@ -134,20 +133,31 @@ module textdrv
 	  end
 	S_ACK_WAIT:
 	  begin
-	    if (ack_count == 8'd39)
+	    if (ack_count == 8'd49)
 	      begin
 		idx_next = 8'd0;
-		y_next = y + 4'h1;
-		rowval_next = (y == 4'hf ? rowval + 10'ha0 : rowval);
-		state_next = (fifo_full ? S_FAULT : S_IDLE);
+		state_next = S_EOL;
 	      end
 	    if (bus.ack)
 	      begin
 		ack_count_next = ack_count + 8'h1;
 	      end
 	  end // case: S_ACK_WAIT
-	S_FAULT:
+	S_EOL:
 	  begin
+	    if (~ack_delay[0])
+	      begin
+		if (y == 4'hb)
+		  begin
+		    rowval_next = rowval + 10'd200;
+		    y_next = 4'h0;
+		  end
+		else
+		  begin
+		    y_next = y + 4'h1;
+		  end
+		state_next = S_IDLE;
+	      end
 	  end
       endcase
     end
@@ -155,7 +165,7 @@ module textdrv
   // Fonts
   logic [7:0]     rgb0, rgb1, rgb0_buf, rgb1_buf;
   logic 	  fifo_write, fifo_full;
-  logic [63:0] 	  fifo_in, fifo_in_next, fifo_buf;
+  logic [31:0] 	  fifo_in, fifo_in_next, fifo_buf;
   logic [95:0]   font0_out_next, font1_out_next;
   logic [95:0]   font0_out, font1_out;
   logic [6:0] 	  font0_adr, font1_adr;
@@ -194,22 +204,20 @@ module textdrv
     begin
 
       case (y[3:0])
-	'hf: fifo_in_next = { rgb0, font0_out[7:0], rgb1, font1_out[7:0] };
-	'he: fifo_in_next = { rgb0, font0_out[15:8], rgb1, font1_out[15:8] };
-	'hd: fifo_in_next = { rgb0, font0_out[23:16], rgb1, font1_out[23:16] };
-	'hc: fifo_in_next = { rgb0, font0_out[31:24], rgb1, font1_out[31:24] };
-	'hb: fifo_in_next = { rgb0, font0_out[39:32], rgb1, font1_out[39:32] };
-	'ha: fifo_in_next = { rgb0, font0_out[47:40], rgb1, font1_out[47:40] };
-	'h9: fifo_in_next = { rgb0, font0_out[55:48], rgb1, font1_out[55:48] };
-	'h8: fifo_in_next = { rgb0, font0_out[63:56], rgb1, font1_out[63:56] };
-	'h7: fifo_in_next = { rgb0, font0_out[71:64], rgb1, font1_out[71:64] };
-	'h6: fifo_in_next = { rgb0, font0_out[79:72], rgb1, font1_out[79:72] };
-	'h5: fifo_in_next = { rgb0, font0_out[87:80], rgb1, font1_out[87:80] };
-	'h4: fifo_in_next = { rgb0, font0_out[95:88], rgb1, font1_out[95:88] };
-	'h3: fifo_in_next = { rgb0, 8'h0, rgb1, 8'h0 };
-	'h2: fifo_in_next = { rgb0, 8'h0, rgb1, 8'h0 };
-	'h1: fifo_in_next = { rgb0, 8'h0, rgb1, 8'h0 };
-	'h0: fifo_in_next = { rgb0, 8'h0, rgb1, 8'h0 };
+	'hb: fifo_in_next = { rgb0, font0_out[7:0], rgb1, font1_out[7:0] };
+	'ha: fifo_in_next = { rgb0, font0_out[15:8], rgb1, font1_out[15:8] };
+	'h9: fifo_in_next = { rgb0, font0_out[23:16], rgb1, font1_out[23:16] };
+	'h8: fifo_in_next = { rgb0, font0_out[31:24], rgb1, font1_out[31:24] };
+	'h7: fifo_in_next = { rgb0, font0_out[39:32], rgb1, font1_out[39:32] };
+	'h6: fifo_in_next = { rgb0, font0_out[47:40], rgb1, font1_out[47:40] };
+	'h5: fifo_in_next = { rgb0, font0_out[55:48], rgb1, font1_out[55:48] };
+	'h4: fifo_in_next = { rgb0, font0_out[63:56], rgb1, font1_out[63:56] };
+	'h3: fifo_in_next = { rgb0, font0_out[71:64], rgb1, font1_out[71:64] };
+	'h2: fifo_in_next = { rgb0, font0_out[79:72], rgb1, font1_out[79:72] };
+	'h1: fifo_in_next = { rgb0, font0_out[87:80], rgb1, font1_out[87:80] };
+	'h0: fifo_in_next = { rgb0, font0_out[95:88], rgb1, font1_out[95:88] };
+	default:
+	  fifo_in_next = 32'hffffffff;
       endcase
     end
   
@@ -228,7 +236,7 @@ module textdrv
 	  .out(fifo_out));
   
   // Now the VGA clocked logic
-  logic [4:0]  x, x_next;
+  logic [5:0]  x, x_next;
   logic        v_active, h_active;
   logic [31:0] fifo_out;
   logic        fifo_read, fifo_empty;
@@ -249,27 +257,28 @@ module textdrv
   
   always_ff @(posedge clk_vga_i)
     begin
-      x <= (h_active ? x_next : 5'h0);
+      x <= (h_active ? x_next : 6'h0);
     end
   
   always_comb
     begin
-      x_next = (h_active && !fifo_empty ? x + 5'h1 : 5'h0);
+      x_next = (h_active && !fifo_empty ? x + 6'h1 : 6'h0);
       fifo_read = 1'h0;
 
       { red, green, blue } = 24'h0;
       
-      if (x < 5'd8)
+      if (x < 6'd8)
 	begin
-	  { red, green, blue } = (char0[5'd7-x] ? color0 : 24'h0);
+	  { red, green, blue } = (char0[6'd7-x] ? color0 : 24'h0);
 	end
       else
 	begin
-	  if (x > 5'd8 && x < 5'd17)
-	    { red, green, blue } = (char1[5'd7-(x-9)] ? color1 : 24'h0);
+	  if (x < 6'd16)
+	    begin
+	      { red, green, blue } = (char1[6'd7-(x-8)] ? color1 : 24'h0);
+	    end
 	end
-
-      if (v_active && x == 5'd17)
+      if (v_active && x == 6'd15)
 	begin
 	  x_next = 5'h0;
 	  fifo_read = 1'h1;
