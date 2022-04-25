@@ -289,7 +289,7 @@ module emu
   if_wb cpu_ibus(), cpu_dbus();
   if_wb ram0_ibus(), ram0_dbus();
   if_wb ram1_ibus(), ram1_dbus();
-  if_wb io_dbus(), io_uart(), io_timer(), io_ps2();
+  if_wb io_dbus(), io_uart(), io_timer(), io_ps2(), io_misc();
   if_wb vga_dbus(), vga_fb0(), vga_fb1();  
 
   mmu mmu_bus0(.clk_i(clk_sys),
@@ -310,6 +310,7 @@ module emu
   mmu #(.BASE(12)) mmu_bus2(.clk_i(clk_sys),
 			    .rst_i(reset),
 			    .mbus(io_dbus.slave),
+			    .p0(io_misc.master),
 			    .p2(io_uart.master),
 			    .p4(io_ps2.master),
 			    .p8(io_timer.master));
@@ -381,7 +382,11 @@ module emu
 	      .bus(io_ps2.slave),
 	      .ps2_key(ps2_key));
 
-  assign LED_USER = cpu_ibus.stb;
+  io_misc iomisc0(.clk_i(clk_sys),
+		  .rst_i(reset),
+		  .bus(io_misc.slave),
+		  .led(LED_USER),
+		  .boot_time(START_TIME));
 
   /////////////////////////// VIDEO  //////////////////////////////////////
 

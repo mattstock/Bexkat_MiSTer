@@ -26,6 +26,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/timerint.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/fifo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../fpgalib/interrupt_encoder.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/ps2_kbd.sv
-
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/io_misc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/uart_fifo.v
 set_global_assignment -name QIP_FILE rtl/uart_fifo.qip
