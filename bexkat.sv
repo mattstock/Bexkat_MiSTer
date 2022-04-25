@@ -201,36 +201,75 @@ module emu
 `include "build_id.v"
   localparam CONF_STR = {
 			 "Bexkat;UART115200;",
+			 "S0,DSK,Mount Disk:;",
+			 "F1,ROM,Mount ROM:;",
 			 "-;",
 			 "O89,Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-			 "-;",
 			 "-;",
 			 "T0,Reset;",
 			 "R0,Reset and close OSD;",
 			 "V,v",`BUILD_DATE
 			 };
   
-  wire 	       forced_scandoubler;
   wire [1:0]   buttons;
   wire [31:0]  status;
-  wire [10:0]  ps2_key;
-  wire [64:0]  RTC;
   wire [32:0]  START_TIME; // epoch time
+
+  wire [10:0]  ps2_key;
+  
+  wire 	       ioctl_download;
+  wire [7:0]   ioctl_index;
+  wire 	       ioctl_wr;
+  wire [15:0]  ioctl_addr;
+  wire [7:0]   ioctl_data;
+  wire 	       ioctl_wait;
+
+  wire [31:0] sd_lba[2];
+  wire [1:0]  sd_rd;
+  wire [1:0]  sd_wr;
+  wire [1:0]  sd_ack;
+  wire [8:0]  sd_buff_addr;
+  wire [7:0]  sd_buff_dout;
+  wire [7:0]  sd_buff_din[2];
+  wire        sd_buff_wr;
+  wire [1:0]  img_mounted;
+  wire        img_readonly;
+  wire [63:0] img_size;
 	      
-  hps_io #(.CONF_STR(CONF_STR)) hps_io(.clk_sys(clk_sys),
-				       .HPS_BUS(HPS_BUS),
-				       .RTC(RTC),
-				       .TIMESTAMP(START_TIME),
-				       .EXT_BUS(),
-				       .gamma_bus(),
-				       
-				       .forced_scandoubler(forced_scandoubler),
-				       
-				       .buttons(buttons),
-				       .status(status),
-				       .status_menumask({status[5]}),
-				       
-				       .ps2_key(ps2_key));
+  hps_io #(.CONF_STR(CONF_STR), .VDNUM(2)) hps_io
+    (.clk_sys(clk_sys),
+     .HPS_BUS(HPS_BUS),
+     .TIMESTAMP(START_TIME),
+     .EXT_BUS(),
+     .gamma_bus(),
+     
+     .ioctl_download(ioctl_download),
+     .ioctl_wr(ioctl_wr),
+     .ioctl_addr(ioctl_addr),
+     .ioctl_dout(ioctl_data),
+     .ioctl_wait(ioctl_wait),
+     .ioctl_index(ioctl_index),
+     
+     .sd_lba(sd_lba),
+     .sd_rd(sd_rd),
+     .sd_wr(sd_wr),
+     .sd_ack(sd_ack),
+     .sd_buff_addr(sd_buff_addr),
+     .sd_buff_dout(sd_buff_dout),
+     .sd_buff_din(sd_buff_din),
+     .sd_buff_wr(sd_buff_wr),
+     
+     .img_mounted(img_mounted),
+     .img_readonly(img_readonly),
+     .img_size(img_size),
+     
+     .buttons(buttons),
+     .status(status),
+     .status_menumask({status[5]}),
+     
+     .ps2_key(ps2_key));
+  
+  wire 	      rom_download = ioctl_download && ioctl_index==0;
   
   ///////////////////////   CLOCKS   ///////////////////////////////
 
@@ -250,7 +289,7 @@ module emu
   if_wb cpu_ibus(), cpu_dbus();
   if_wb ram0_ibus(), ram0_dbus();
   if_wb ram1_ibus(), ram1_dbus();
-  if_wb io_dbus(), io_uart(), io_timer();
+  if_wb io_dbus(), io_uart(), io_timer(), io_ps2();
   if_wb vga_dbus(), vga_fb0(), vga_fb1();  
 
   mmu mmu_bus0(.clk_i(clk_sys),
@@ -271,12 +310,15 @@ module emu
   mmu #(.BASE(12)) mmu_bus2(.clk_i(clk_sys),
 			    .rst_i(reset),
 			    .mbus(io_dbus.slave),
-			    .p2(io_uart.master));
+			    .p2(io_uart.master),
+			    .p4(io_ps2.master),
+			    .p8(io_timer.master));
 
-  ////////////////////////////////////////////////////////////////////
+  ///////////////////////////// CPU //////////////////////////////////
 
-  logic        cpu_halt;
+  logic        cpu_halt, bus0_error;
   logic        cpu_inter_en;
+  logic [3:0]  cpu_exception;
   
   bexkat2 cpu0(.clk_i(clk_sys),
 	       .rst_i(reset),
@@ -284,7 +326,19 @@ module emu
 	       .dat_bus(cpu_dbus.master),
 	       .halt(cpu_halt),
 	       .int_en(cpu_inter_en),
-	       .inter(4'b0));
+	       .inter(cpu_exception));
+
+  assign bus0_error = (cpu_ibus.cyc & cpu_ibus.stb & !ram1_ibus.stb);
+
+  interrupt_encoder intenc0(.clk_i(clk_sys),
+			    .rst_i(reset),
+			    .mmu(bus0_error),
+			    .timer_in(timer_interrupts),
+			    .serial0_in(serial0_interrupts),
+			    .enabled(cpu_inter_en),
+			    .cpu_exception(cpu_exception));
+  
+  ///////////////////////////// MEM //////////////////////////////////
 
   // 128kB
   dualram #(.AWIDTH(15),
@@ -305,6 +359,7 @@ module emu
   
   assign UART_DTR = 1'b1;
   logic [1:0]  serial0_interrupts;
+  logic [3:0]  timer_interrupts;
   
   uart #(.CLKFREQ(clkfreq),
 	 .BAUD(115200)) uart0(.clk_i(clk_sys),
@@ -315,6 +370,16 @@ module emu
 			      .cts(UART_CTS),
 			      .rts(UART_RTS),
 			      .interrupt(serial0_interrupts));
+
+  timerint timerint0(.clk_i(clk_sys),
+		     .rst_i(reset),
+		     .bus(io_timer.slave),
+		     .interrupt(timer_interrupts));
+  
+  ps2_kbd ps2(.clk_i(clk_sys),
+	      .rst_i(reset),
+	      .bus(io_ps2.slave),
+	      .ps2_key(ps2_key));
 
   assign LED_USER = cpu_ibus.stb;
 
